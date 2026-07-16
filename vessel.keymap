@@ -1,0 +1,23 @@
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/pointing.h>   /* &mkp, LCLK/RCLK/MCLK */
+#include <dt-bindings/zmk/bt.h>
+
+/ {
+    keymap {
+        compatible = "zmk,keymap";
+
+        base {
+            /* One binding per kscan input-gpio, in the same order.
+             * Right now that's M1, M2 — add more as you wire 01–04. */
+            bindings = <
+                &mkp LCLK   &mkp RCLK
+            >;
+
+            /* Scroll ring. Defaults to volume (works out of the box).
+             * For mouse-wheel instead, see ZMK pointing/scroll docs and swap
+             * this for a scroll behavior. */
+            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN>;
+        };
+    };
+};
