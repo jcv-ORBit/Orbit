@@ -2,8 +2,35 @@
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/pointing.h>   /* &mkp, LCLK/RCLK/MCLK */
 #include <dt-bindings/zmk/bt.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>   /* INPUT_EV_KEY, INPUT_BTN_* */
 
 / {
+    /* Work item 2: CAP1188 touch -> ZMK behaviors.
+     * The CAP1188 (vessel.overlay, on &i2c1) emits one INPUT_EV_KEY event per
+     * channel. This listener runs those events through a behaviors processor
+     * that invokes one ZMK behavior per channel code. This is the spec §4.2
+     * PRIMARY path (stock driver + listener shim) — no custom module.
+     *
+     * Item 2 proves the pipeline end-to-end with the three click zones
+     * (CS1/CS2/CS3). CS4/CS5/CS6 (back/fwd/PTT — item 3) and CS7/CS8 (slider —
+     * item 4) are intentionally &none here and get their behaviors in later PRs. */
+    cap_listener: cap_listener {
+        compatible = "zmk,input-listener";
+        device = <&cap1188>;
+        input-processors = <&cap_zone_behaviors>;
+    };
+
+    cap_zone_behaviors: cap_zone_behaviors {
+        compatible = "zmk,input-processor-behaviors";
+        #input-processor-cells = <0>;
+        type = <INPUT_EV_KEY>;
+        codes = <INPUT_BTN_0 INPUT_BTN_1 INPUT_BTN_2 INPUT_BTN_3
+                 INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7>;
+        /* CS1->L, CS2->R, CS3->M click. CS4..CS8 pending items 3/4. */
+        bindings = <&mkp LCLK>, <&mkp RCLK>, <&mkp MCLK>,
+                   <&none>, <&none>, <&none>, <&none>, <&none>;
+    };
+
     keymap {
         compatible = "zmk,keymap";
 

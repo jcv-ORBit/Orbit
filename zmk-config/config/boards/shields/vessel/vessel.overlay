@@ -83,7 +83,12 @@
     };
 };
 
-&spi1 {
+/* PMW3610 lives on SPIM3, NOT SPIM1. On the nRF52840, spi1 (SPIM1) and i2c1
+ * (TWIM1) are the SAME peripheral instance (both at 0x40004000) and are mutually
+ * exclusive. The CAP1188 touch bus must be i2c1 (the XIAO D4/D5 controller), so
+ * the trackball SPI moves to spi3 (SPIM3 @0x4002f000, instance 3, no TWI sibling).
+ * Pins are unchanged — pinctrl (spi_tb_default) routes the same D8/D9/D10. */
+&spi3 {
     compatible = "nordic,nrf-spim";
     status = "okay";
     pinctrl-0 = <&spi_tb_default>;
@@ -103,5 +108,31 @@
         y-input-code = <INPUT_REL_Y>;
         /* Uncomment/adjust after the first test to fix direction: */
         /* swap-xy; invert-x; invert-y; */
+    };
+};
+
+/* --- CAP1188 8-channel capacitive touch (work item 2) ---
+ * Shared I2C with the DRV2605L haptics (added in item 5). On the xiao_ble board
+ * the XIAO D4/D5 pins are &i2c1 (NOT i2c0 — that's the internal sensor bus).
+ * The spec's "I2C0 @0x29" is a net label; the Zephyr node here is i2c1.
+ * The driver emits an INPUT_EV_KEY event per channel (codes below); the
+ * input-listener + input-processor-behaviors in vessel.keymap turn those into
+ * ZMK behaviors — no custom module needed (spec §4.2 primary path).
+ */
+&i2c1 {
+    status = "okay";
+
+    cap1188: cap1188@29 {
+        compatible = "microchip,cap12xx";
+        reg = <0x29>;
+        /* D0 = P0.02 = CAP1188 ALERT (open-drain, active low). Internal pull-up
+         * enabled; the harness may also pull it up. D1/RESET is tied high in
+         * hardware (spec §2), so it is not driven here. */
+        int-gpios = <&gpio0 2 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+        /* One input code per physical channel CS1..CS8 -> touch channel 0..7.
+         * The keymap maps these to behaviors. */
+        input-codes = <INPUT_BTN_0 INPUT_BTN_1 INPUT_BTN_2 INPUT_BTN_3
+                       INPUT_BTN_4 INPUT_BTN_5 INPUT_BTN_6 INPUT_BTN_7>;
+        /* repeat;  // auto-repeat on prolonged touch — left off for click zones */
     };
 };
