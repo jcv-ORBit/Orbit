@@ -7,11 +7,15 @@ manifest:
   projects:
     - name: zmk
       remote: zmkfirmware
-      revision: main
+      # Pinned: v0.3.0 is the last ZMK release that still ships the
+      # `seeeduino_xiao_ble` board (main renamed it to seeed/xiao_ble under
+      # Hardware Model v2). This transitively pins Zephyr via app/west.yml.
+      revision: v0.3.0
       import: app/west.yml
-    # PMW3610 trackball driver (community). Verify the revision/fork you want.
+    # PMW3610 trackball driver (community). Pinned to a specific commit so a
+    # green build stays reproducible instead of floating on the fork's main.
     - name: zmk-pmw3610-driver
       remote: badjeff
-      revision: main
+      revision: 44b4a76b74d293a93cec4ccb7e04cb8d29c10f93
   self:
     path: config

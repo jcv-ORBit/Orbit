@@ -6,10 +6,12 @@
 # Ignore everything at the top level by default...
 /*
 
-# ...except the firmware config and the docs we deliberately track:
+# ...except the firmware config, docs, and CI we deliberately track:
 !/.gitignore
+!/.github/
 !/README.md
 !/FIRMWARE_SPEC.md
+!/HARDWARE_VALIDATION.md
 !/zmk-config/
 
 # Never track OS cruft or editor swap files, at any depth.

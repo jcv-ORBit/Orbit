@@ -1,0 +1,23 @@
+# ORBit firmware — GitHub Actions build (ZMK / shield "vessel").
+#
+# The ZMK config lives under zmk-config/ (not the repo root), so we pass the
+# reusable ZMK workflow the subdir paths via its config_path / build_matrix_path
+# inputs — no restructuring required. See structural issue for rationale.
+#
+# Pinned to zmk@v0.3.0 (last release that still ships the `seeeduino_xiao_ble`
+# board the firmware spec's DoD requires; ZMK main renamed it to seeed/xiao_ble
+# under Hardware Model v2). The upstream revisions themselves are pinned in
+# zmk-config/config/west.yml.
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3.0
+    with:
+      build_matrix_path: zmk-config/build.yaml
+      config_path: zmk-config/config
