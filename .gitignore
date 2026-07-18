@@ -1,0 +1,18 @@
+# ORBit ZMK-Conf — track firmware config + docs only.
+# CAD/binary artifacts (STL/3MF), build scripts, and scratch folders
+# stay LOCAL. They remain on disk and in git history; they're just not
+# tracked going forward.
+
+# Ignore everything at the top level by default...
+/*
+
+# ...except the firmware config and the docs we deliberately track:
+!/.gitignore
+!/README.md
+!/FIRMWARE_SPEC.md
+!/zmk-config/
+
+# Never track OS cruft or editor swap files, at any depth.
+.DS_Store
+*.kate-swp
+*.swp
