@@ -50,11 +50,37 @@ that introduces the tunable.
   > too coarse/fine on-device, this is the knob. If direction is reversed, swap
   > `a-gpios`/`b-gpios` (D2/D3).
 
+## 3. CAP1188 touch bring-up (sleeve fitted)  _(PR item 2; `microchip,cap12xx`)_
+Tune with the **TPU sleeve fitted** — the 1.0 mm TPU + 1.2 mm shell stack roughly
+halves raw counts vs. bare bench (spec §3).
+- [ ] **Observe:** touch the three click caps. **Expected (item 2 scope):** CS1 =
+  left click, CS2 = right click, CS3 = middle click. CS4–CS8 do nothing yet
+  (they're `&none` until items 3/4).
+- [ ] **Observe:** ALERT/interrupt path — a touch registers promptly (spec target
+  <10 ms). **Tune:** `int-gpios` on the `cap1188@29` node (D0, active-low,
+  internal pull-up). If nothing registers, check the ALERT pull-up and that
+  RESET (D1) is tied high (spec §2).
+- [ ] **Observe:** no phantom/adjacent-zone triggers. **Expected:** each cap fires
+  only its own zone.
+- ⚠️ **KNOWN TUNING GAP — read before bench tuning.** The stock `microchip,cap12xx`
+  driver exposes **no sensitivity/gain/threshold devicetree property** (only
+  `int-gpios`, `repeat`, `poll-interval-ms`, `input-codes`). It runs the chip's
+  **default** sensitivity. So if, with the sleeve on, touches are too weak
+  (missed) or too hot (false triggers), there is **no firmware knob** in this
+  driver. Options, in order: (a) increase electrode foil area / improve the
+  dielectric contact (hardware, spec §7 allows a one-line CAD change); (b) toggle
+  `repeat` and `poll-interval-ms`; (c) patch/fork the driver to write the CAP1188
+  SENSITIVITY (0x1F) and averaging (0x24) registers at init, exposed as a Kconfig
+  option; (d) fall back to the custom module (spec §4.2). Item 2 ships default
+  sensitivity; capture the observed behavior here and pick an option if needed.
+- [ ] **Observe:** I²C bus health with both devices — CAP1188 @0x29 and (after
+  item 5) DRV2605L @0x5A share `&i2c1` (D4/D5). **Expected:** both enumerate; no
+  bus lockups.
+
 <!--
 Items below are placeholders for the subsystems each numbered work-package PR
 introduces. Each PR appends its concrete tuning points and pass criteria here.
 
-## 3. CAP1188 touch sensitivity (sleeve fitted)      — PR #2 (item 2)
 ## 4. Touch zone mapping (CS1..CS6)                   — PR #3 (item 3)
 ## 5. Slider (CS7/CS8)                                — PR #4 (item 4)
 ## 6. DRV2605L haptics: LRA auto-cal + per-zone feel  — PR #5 (item 5)
