@@ -8,10 +8,12 @@
         compatible = "zmk,keymap";
 
         base {
-            /* One binding per kscan input-gpio, in the same order.
-             * Right now that's M1, M2 — add more as you wire 01–04. */
+            /* v1 work item 1: the D0/D1 mouse-click buttons are gone (D0/D1 are
+             * the CAP1188 ALERT/RESET now). The kscan is a 1x1 mock placeholder,
+             * so this layer has a single &none. Real click/zone behaviors arrive
+             * in PR-2/PR-3 driven by the CAP1188 input listener, not this keymap. */
             bindings = <
-                &mkp LCLK   &mkp RCLK
+                &none
             >;
 
             /* Scroll ring. Defaults to volume (works out of the box).
