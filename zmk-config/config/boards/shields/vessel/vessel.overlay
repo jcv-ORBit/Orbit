@@ -9,6 +9,7 @@
  */
 
 #include <dt-bindings/zmk/matrix_transform.h>
+#include <dt-bindings/zmk/kscan_mock.h>
 /* PMW3610 node below uses INPUT_EV_REL / INPUT_REL_X/Y — the seed referenced
  * these without including the header that defines them, so a fresh build never
  * compiled. (Per the badjeff driver README.) */
@@ -19,17 +20,26 @@
         zmk,kscan = &kscan0;
     };
 
-    /* Buttons — direct GPIO (common leg -> GND) */
-    kscan0: kscan_direct {
-        compatible = "zmk,kscan-gpio-direct";
-        wakeup-source;
-        input-gpios
-            = <&gpio0  2 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>   /* M1  (D0) */
-            , <&gpio0  3 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>   /* M2  (D1) */
-            /* TODO add 01–04 on castellated pads, e.g.:
-             * , <&gpio1  X (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>
-             */
-            ;
+    /* v1 work item 1: D0/D1 are NOT buttons. In the cap-touch revision they are
+     * the CAP1188 ALERT (D0) and RESET (D1) — see FIRMWARE_SPEC.md §2. The old
+     * `zmk,kscan-gpio-direct` on D0/D1 is deleted.
+     *
+     * This device has no digital-GPIO keys at all now (the 6 touch zones arrive
+     * in PR-2 as a CAP1188 *input* device, not a kscan). ZMK still requires a
+     * chosen `zmk,kscan`, so stand in a mock that never fires: no `events` and
+     * no `exit-after`, so it generates nothing on real hardware. PR-2 removes it
+     * once the touch input pipeline exists. Mirrors ZMK's own native_posix mock
+     * pattern (rows/columns, no events). */
+    kscan0: kscan_mock {
+        compatible = "zmk,kscan-mock";
+        rows = <1>;
+        columns = <1>;
+        /* The mock driver requires an `events` property to exist (it sizes an
+         * array by its length). One press+release on position (0,0) — which is
+         * bound to &none — is a boot-time no-op, then the driver idles (no
+         * `exit-after`, which would reboot real hardware). PR-2 removes all of
+         * this once the CAP1188 input pipeline exists. */
+        events = <ZMK_MOCK_PRESS(0,0,10) ZMK_MOCK_RELEASE(0,0,10)>;
     };
 
     /* Scroll ring: the 2 hall latches read as a quadrature encoder */
