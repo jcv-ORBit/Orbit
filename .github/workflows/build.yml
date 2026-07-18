@@ -1,0 +1,58 @@
+# ORBit firmware — GitHub Actions build (ZMK / shield "vessel").
+#
+# Custom (not the reusable ZMK workflow) because the ZMK config lives under a
+# nested zmk-config/ dir. The reusable workflow's `config_path` input only
+# renames the config dir at the repo root; with a nested path, `west init -l
+# zmk-config/config` anchors the west workspace at zmk-config/ (the parent of
+# the manifest dir), but the reusable workflow then runs `west update` from the
+# repo root and fails with "no west workspace found". This workflow instead runs
+# every west step from the zmk-config/ topdir, so the nested layout the repo
+# deliberately keeps (tracking only zmk-config/ + docs) works untouched.
+#
+# Container pinned to :3.5 to match ZMK v0.3.0's Zephyr (v3.5.0+zmk-fixes); the
+# moving :stable tag is now Zephyr 4.1 and would mismatch. Upstream revisions
+# are pinned in zmk-config/config/west.yml (zmk@v0.3.0 — last release shipping
+# the seeeduino_xiao_ble board the spec DoD requires).
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build (seeeduino_xiao_ble, vessel)
+    container:
+      image: zmkfirmware/zmk-build-arm:3.5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # west init -l <dir> sets the workspace topdir to the PARENT of <dir>,
+      # i.e. zmk-config/ here. All later west steps run from that topdir.
+      - name: West init
+        run: west init -l zmk-config/config
+
+      - name: West update
+        working-directory: zmk-config
+        run: west update
+
+      - name: Zephyr export
+        working-directory: zmk-config
+        run: west zephyr-export
+
+      - name: Build vessel
+        working-directory: zmk-config
+        run: |
+          west build -s zmk/app -b seeeduino_xiao_ble -- \
+            -DSHIELD=vessel \
+            -DZMK_CONFIG="$GITHUB_WORKSPACE/zmk-config/config"
+
+      - name: Upload firmware (zmk.uf2)
+        uses: actions/upload-artifact@v4
+        with:
+          name: vessel-seeeduino_xiao_ble
+          path: zmk-config/build/zephyr/zmk.uf2
+          if-no-files-found: warn
