@@ -1,6 +1,0 @@
-if SHIELD_VESSEL
-
-config ZMK_KEYBOARD_NAME
-    default "Vessel"
-
-endif
