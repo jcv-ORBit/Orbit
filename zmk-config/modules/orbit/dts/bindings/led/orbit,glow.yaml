@@ -36,7 +36,7 @@ properties:
   idle-brightness:
     type: int
     default: 8
-    description: Idle scene duty, percent of color-hex (spec: "idle low duty").
+    description: Idle scene duty, percent of color-hex (the spec's "idle low duty").
   flash-brightness:
     type: int
     default: 30
