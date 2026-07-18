@@ -1,0 +1,93 @@
+/*
+ * Vessel trackball — device tree for XIAO nRF52840 (Sense Plus)
+ *
+ * XIAO D-pin  ->  nRF port/pin  (used below)
+ *   D0=P0.02  D1=P0.03  D2=P0.28  D3=P0.29  D4=P0.04  D5=P0.05
+ *   D6=P1.11  D7=P1.12  D8=P1.13  D9=P1.14  D10=P1.15
+ * The 9 extra Sense-Plus castellated pads are NOT in this map — look up their
+ * P0.xx/P1.xx numbers on the Seeed pinout and add them where marked TODO.
+ */
+
+#include <dt-bindings/zmk/matrix_transform.h>
+
+/ {
+    chosen {
+        zmk,kscan = &kscan0;
+    };
+
+    /* Buttons — direct GPIO (common leg -> GND) */
+    kscan0: kscan_direct {
+        compatible = "zmk,kscan-gpio-direct";
+        wakeup-source;
+        input-gpios
+            = <&gpio0  2 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>   /* M1  (D0) */
+            , <&gpio0  3 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>   /* M2  (D1) */
+            /* TODO add 01–04 on castellated pads, e.g.:
+             * , <&gpio1  X (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>
+             */
+            ;
+    };
+
+    /* Scroll ring: the 2 hall latches read as a quadrature encoder */
+    scroll: encoder_scroll {
+        compatible = "alps,ec11";
+        a-gpios = <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;  /* D2 hall A */
+        b-gpios = <&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;  /* D3 hall B */
+        steps = <24>;
+        status = "okay";
+    };
+    sensors {
+        compatible = "zmk,keymap-sensors";
+        sensors = <&scroll>;
+    };
+
+    /* Register trackball motion with the pointing subsystem */
+    trackball_listener {
+        compatible = "zmk,input-listener";
+        device = <&trackball>;
+    };
+};
+
+/* --- PMW3610 on SPI (3-wire) — needs the badjeff module in west.yml --- */
+&pinctrl {
+    spi_tb_default: spi_tb_default {
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK,  1, 13)>,   /* D8  SCLK */
+                    <NRF_PSEL(SPIM_MOSI, 1, 15)>,   /* D10 SDIO (data) */
+                    /* 3-wire sensor: no separate MISO wire. Park MISO on an
+                     * unused pin so Zephyr is happy; the driver reads on MOSI. */
+                    <NRF_PSEL(SPIM_MISO, 0,  6)>;
+        };
+    };
+    spi_tb_sleep: spi_tb_sleep {
+        group1 {
+            psels = <NRF_PSEL(SPIM_SCK,  1, 13)>,
+                    <NRF_PSEL(SPIM_MOSI, 1, 15)>,
+                    <NRF_PSEL(SPIM_MISO, 0,  6)>;
+            low-power-enable;
+        };
+    };
+};
+
+&spi1 {
+    compatible = "nordic,nrf-spim";
+    status = "okay";
+    pinctrl-0 = <&spi_tb_default>;
+    pinctrl-1 = <&spi_tb_sleep>;
+    pinctrl-names = "default", "sleep";
+    cs-gpios = <&gpio1 14 GPIO_ACTIVE_LOW>;          /* D9 nCS */
+
+    trackball: trackball@0 {
+        status = "okay";
+        compatible = "pixart,pmw3610-alt";
+        reg = <0>;
+        spi-max-frequency = <2000000>;
+        irq-gpios = <&gpio1 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;  /* D7 MOT */
+        cpi = <600>;
+        evt-type = <INPUT_EV_REL>;
+        x-input-code = <INPUT_REL_X>;
+        y-input-code = <INPUT_REL_Y>;
+        /* Uncomment/adjust after the first test to fix direction: */
+        /* swap-xy; invert-x; invert-y; */
+    };
+};
